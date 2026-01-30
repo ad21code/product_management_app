@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4 fw-bold">Transaction History</h2>
+    
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead class="bg-primary text-white">
+                    <tr>
+                        <th class="p-3">Date</th>
+                        <th class="p-3">Stripe Session ID</th>
+                        <th class="p-3">Amount</th>
+                        <th class="p-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in transactions %}
+                    <tr>
+                        <td class="p-3">{{ order.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="p-3"><small class="text-muted">{{ order.stripe_session_id }}</small></td>
+                        <td class="p-3 fw-bold">${{ order.amount_total }}</td>
+                        <td class="p-3"><span class="badge bg-success">{{ order.status }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center p-4">No transactions found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

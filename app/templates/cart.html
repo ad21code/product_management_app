@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4 fw-bold">Shopping Cart</h2>
+    
+    {% if items %}
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr id="row-{{ item.product.id }}">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ item.product.image_url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;" class="me-3">
+                                        <span class="fw-semibold">{{ item.product.title }}</span>
+                                    </div>
+                                </td>
+                                <td>${{ item.product.price }}</td>
+                                <td>
+                                    <div class="quantity-control">
+                                        <button class="quantity-btn" onclick="updateCart({{ item.product.id }}, 'decrease')">-</button>
+                                        <span class="quantity-value" id="qty-{{ item.product.id }}">{{ item.quantity }}</span>
+                                        <button class="quantity-btn" onclick="updateCart({{ item.product.id }}, 'increase')">+</button>
+                                    </div>
+                                </td>
+                                <td class="fw-bold text-primary">$<span id="total-{{ item.product.id }}">{{ item.total }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4">Order Summary</h5>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Subtotal</span>
+                        <span class="fw-bold">$<span id="grand-total">{{ grand_total }}</span></span>
+                    </div>
+                    <hr>
+                    <button id="checkout-btn" class="btn btn-custom w-100 py-3">Checkout Now</button>
+                    <a href="/clear_cart" class="btn btn-outline-danger w-100 mt-2">Clear Cart</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateCart(productId, action) {
+            fetch('/api/update_cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId, action: action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the specific item's quantity
+                    if (data.new_quantity === 0) {
+                        // If quantity is 0, remove the row with a fade effect
+                        const row = document.getElementById('row-' + productId);
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    } else {
+                        document.getElementById('qty-' + productId).innerText = data.new_quantity;
+                        document.getElementById('total-' + productId).innerText = data.item_total;
+                    }
+                    
+                    // Update Grand Total
+                    document.getElementById('grand-total').innerText = data.grand_total;
+                    
+                    // Optional: Update Cart Badge in Navbar if you have one
+                    const badge = document.querySelector('.badge');
+                    if(badge) badge.innerText = data.cart_count;
+                }
+            });
+        }
+        
+        // Existing Stripe Logic
+        var stripe = Stripe('{{ config.STRIPE_PUBLIC_KEY }}');
+        var checkoutButton = document.getElementById('checkout-btn');
+        checkoutButton.addEventListener('click', function () {
+            fetch('/create-checkout-session', { method: 'POST' })
+            .then(response => response.json())
+            .then(session => stripe.redirectToCheckout({ sessionId: session.id }));
+        });
+    </script>
+
+    {% else %}
+    <div class="text-center py-5">
+        <h3>Your cart is empty</h3>
+        <a href="/" class="btn btn-custom mt-3">Start Shopping</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
